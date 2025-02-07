@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const rg = @import("raygui");
+const lights = @import("rlights");
 const ziglua = @import("ziglua");
 //const clay = @cImport({
 //    @cInclude("src/clay.h");
@@ -30,9 +31,36 @@ fn loadMap(image: [*:0]const u8) !rl.Model {
 
 fn initLua() !void {}
 
+fn handleCursor(isCursorEnabled: bool) bool {
+    if (rl.isKeyPressed(rl.KeyboardKey.escape)) {
+        if (!isCursorEnabled) {
+            rl.enableCursor();
+            const cc: bool = !isCursorEnabled;
+            return cc;
+        } else {
+            rl.disableCursor();
+            const cc: bool = !isCursorEnabled;
+            return cc;
+        }
+    }
+    return isCursorEnabled;
+}
+
+fn handleNewMap(map: rl.Model) !rl.Model {
+    if (rl.isFileDropped()) {
+        const filepath: rl.FilePathList = rl.loadDroppedFiles();
+        rl.unloadModel(map);
+        const mapModel = try loadMap(filepath.paths[0]);
+        rl.unloadDroppedFiles(filepath);
+        return mapModel;
+    }
+    return map;
+}
+
 //should come from settings file
 fn initWindowSettings() void {
-    rl.toggleFullscreen();
+    //rl.toggleFullscreen();
+    rl.maximizeWindow();
     rl.setTargetFPS(60);
     rl.disableCursor();
     rl.setExitKey(rl.KeyboardKey.home); //home key raylib.zig:1694
@@ -65,31 +93,22 @@ pub fn main() !void {
     defer rl.closeWindow();
     initWindowSettings();
     var camera = initDefaultCamera();
-    const map = try loadMap("assets/monzuno.png");
-    const mapPosition = rl.Vector3{ .x = 0, .y = 4, .z = 0 };
+    var map = try loadMap("assets/monzuno.png");
+    const mapPosition = rl.Vector3{ .x = -8.0, .y = 4.0, .z = -8.0 };
     const text = "hello";
     const textCopy = try strdup(text);
     defer std.c.free(textCopy);
-    var cursorEnabled = false;
+    var isCursorEnabled = false;
     rl.updateCamera(&camera, rl.CameraMode.free);
     while (!rl.windowShouldClose()) {
         rl.updateCamera(&camera, rl.CameraMode.free);
-        if (rl.isKeyPressed(rl.KeyboardKey.escape)) {
-            if (!cursorEnabled) {
-                rl.enableCursor();
-                rl.updateCamera(&camera, rl.CameraMode.orbital);
-                cursorEnabled = !cursorEnabled;
-            } else {
-                rl.disableCursor();
-                cursorEnabled = !cursorEnabled;
-                rl.updateCamera(&camera, rl.CameraMode.free);
-            }
-        }
+        isCursorEnabled = handleCursor(isCursorEnabled);
         rl.beginDrawing();
         //DRAWING
         rl.clearBackground(rl.Color.white);
         rl.beginMode3D(camera);
-        drawMap(map, mapPosition, 1, rl.Color.brown, true);
+        drawMap(map, mapPosition, 1.0, rl.Color.yellow, true);
+        map = try handleNewMap(map);
         rl.endMode3D();
         rl.drawFPS(100, 100);
         _ = rg.guiMessageBox(rl.Rectangle{ .height = 400, .width = 800, .x = -40, .y = -40 }, "hello", "hello", "bottone");
