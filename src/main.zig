@@ -7,7 +7,7 @@ const json = std.json;
 //    @cInclude("src/clay.h");
 //});
 const print = std.debug.print;
-
+const Lua = ziglua.Lua;
 const cString = @cImport({
     @cInclude("string.h");
 });
@@ -42,13 +42,9 @@ fn loadConfig(filepath: []const u8, a: std.mem.Allocator) !Config {
     return parsed.value;
 }
 
-fn initLua() !void {}
 fn handleCursor(isCursorEnabled: bool) !bool {
     if (rl.isKeyPressed(rl.KeyboardKey.escape)) {
         if (!isCursorEnabled) {
-            const textBox = rl.Rectangle{ .height = 100, .width = 100, .x = 800, .y = 900 };
-            const text = try strdup("loading");
-            _ = rg.guiTextBox(textBox, text, 12, false);
             rl.enableCursor();
             const cc: bool = !isCursorEnabled;
             return cc;
@@ -89,6 +85,15 @@ fn initWindowSettings(mode: windowMode) void {
     rl.setExitKey(rl.KeyboardKey.home); //home key raylib.zig:1694
 }
 
+fn changeMapColor() void {}
+
+fn registerFunctions(L: *Lua) void {
+    L.pushFunction(ziglua.wrap(changeMapColor()));
+    L.setGlobal("change_map_color");
+    L.pushFunction(ziglua.wrap(onUpdate()));
+    L.setGlobal("on_update");
+}
+
 fn initDefaultCamera() rl.Camera3D {
     const cameraPosition: rl.Vector3 = .{ .x = -8, .y = 10, .z = -8 };
     const cameraUp: rl.Vector3 = .{ .x = 0, .y = 1, .z = 0 };
@@ -116,11 +121,22 @@ pub fn main() !void {
     defer rl.closeWindow();
     initWindowSettings(windowMode.fullscreen);
     var camera = initDefaultCamera();
+
     var map = try loadMap("assets/monzuno.png");
     const mapPosition = rl.Vector3{ .x = -8.0, .y = 4.0, .z = -8.0 };
+
     const text = "hello";
     const textCopy = try strdup(text);
     defer std.c.free(textCopy);
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+    var lua = try Lua.init(allocator);
+    defer lua.deinit();
+
+    registerLuaFunctions(lua, functionList);
+
     var isCursorEnabled = false;
     rl.updateCamera(&camera, rl.CameraMode.free);
     while (!rl.windowShouldClose()) {
