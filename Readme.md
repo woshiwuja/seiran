@@ -23,3 +23,12 @@ Map is generated from heatmaps.
 - [ ] make map to be generated importable and saveble
 
 - [ ] add structures
+
+## Build
+
+```
+git clone https://github.com/woshiwuja/seiran.git
+cd seiran
+zig build
+./zig-out/bin/seiran
+```
