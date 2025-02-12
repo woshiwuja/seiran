@@ -1,5 +1,5 @@
 local script = {}
 
-function OnUpdate()
-    speed = 
+function OnTrigger()
+    print("trigger")
 end
