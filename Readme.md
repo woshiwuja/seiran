@@ -24,6 +24,8 @@ Map is generated from heatmaps.
 
 - [ ] add structures
 
+- [ ] implement flecs
+
 ## Build
 
 ```
